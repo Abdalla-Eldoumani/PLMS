@@ -1,0 +1,14 @@
+FROM php:8.4.0RC3-apache
+WORKDIR /var/www/html
+
+RUN docker-php-ext-install pdo pdo_mysql
+
+RUN apt-get update && apt-get install -y git unzip \
+    && curl -sS https://getcomposer.org/installer \
+    | php -- --install-dir=/usr/local/bin --filename=composer
+
+COPY src/ /var/www/html/
+
+RUN composer require symfony/yaml
+
+EXPOSE 80

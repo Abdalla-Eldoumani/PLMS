@@ -1,0 +1,68 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile-web
+    container_name: web
+    ports:
+      - "8800:80"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - db
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: db
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-db
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - "./scripts:/docker-entrypoint-initdb.d"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  node:
+    image: node:latest
+    container_name: node_assets
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    command: sh -c "npm install && npx tailwindcss -i ./input.css -o ./output.css --watch"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+volumes:
+  mysql_data: {}

@@ -1,0 +1,30 @@
+FROM mysql:8.0-debian
+
+ENV MYSQL_LOG_DIR /var/log/mysql
+ENV MYSQL_DATA_DIR /var/lib/mysql
+
+RUN if [ ! -d "$MYSQL_LOG_DIR" ]; then mkdir -p "$MYSQL_LOG_DIR"; fi \
+    && chown -R mysql:mysql "$MYSQL_LOG_DIR" && chmod 755 "$MYSQL_LOG_DIR"
+
+RUN if [ ! -d "$MYSQL_DATA_DIR" ]; then mkdir -p "$MYSQL_DATA_DIR"; fi \
+    && chown -R mysql:mysql "$MYSQL_DATA_DIR" && chmod 700 "$MYSQL_DATA_DIR"
+
+COPY my.cnf /etc/mysql/conf.d/
+RUN chmod 644 /etc/mysql/conf.d/my.cnf
+
+COPY ./scripts/ /docker-entrypoint-initdb.d/
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    bash percona-toolkit \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get install -y --no-install-recommends \
+    libdbi-perl libdbd-mysql-perl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cpan App::mytop
+
+ENV TZ=America/Edmonton
+
+HEALTHCHECK CMD mysqladmin ping -h localhost
