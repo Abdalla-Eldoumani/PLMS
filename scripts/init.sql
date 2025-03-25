@@ -1,3 +1,6 @@
+CREATE DATABASE IF NOT EXISTS parking_management;
+USE parking_management;
+
 DROP TABLE IF EXISTS admin_parking_lots;
 DROP TABLE IF EXISTS overstay_alerts;
 DROP TABLE IF EXISTS payments;
