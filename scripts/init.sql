@@ -1,21 +1,5 @@
-CREATE DATABASE IF NOT EXISTS parking_management;
-USE parking_management;
+CREATE DATABASE parking_management;
 
-DROP TABLE IF EXISTS admin_parking_lots;
-DROP TABLE IF EXISTS overstay_alerts;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS bookings;
-DROP TABLE IF EXISTS vehicles;
-DROP TABLE IF EXISTS event_reservations;
-DROP TABLE IF EXISTS parking_slots;
-DROP TABLE IF EXISTS parking_lots;
-DROP TABLE IF EXISTS admins;
-DROP TABLE IF EXISTS customers;
-DROP TABLE IF EXISTS users;
-
-----------------------------------------------------
--- 1. Supertype: Users
-----------------------------------------------------
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -24,18 +8,12 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL
 );
 
-----------------------------------------------------
--- 2. Subtype: Admins (ISA: Admin is a User)
-----------------------------------------------------
 CREATE TABLE admins (
     user_id INT PRIMARY KEY,
     role VARCHAR(50),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 3. Subtype: Customers (ISA: Customer is a User)
-----------------------------------------------------
 CREATE TABLE customers (
     user_id INT PRIMARY KEY,
     license_plate VARCHAR(20),
@@ -43,9 +21,6 @@ CREATE TABLE customers (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 4. ParkingLot
-----------------------------------------------------
 CREATE TABLE parking_lots (
     lot_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -53,9 +28,6 @@ CREATE TABLE parking_lots (
     total_slots INT NOT NULL
 );
 
-----------------------------------------------------
--- 5. ParkingSlot (Weak Entity: depends on ParkingLot)
-----------------------------------------------------
 CREATE TABLE parking_slots (
     slot_id INT AUTO_INCREMENT PRIMARY KEY,
     lot_id INT NOT NULL,
@@ -66,9 +38,6 @@ CREATE TABLE parking_slots (
     FOREIGN KEY (lot_id) REFERENCES parking_lots(lot_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 6. Vehicle (Owned by Customer)
-----------------------------------------------------
 CREATE TABLE vehicles (
     vehicle_id INT AUTO_INCREMENT PRIMARY KEY,
     license_plate VARCHAR(20) NOT NULL UNIQUE,
@@ -77,9 +46,6 @@ CREATE TABLE vehicles (
     FOREIGN KEY (owner_id) REFERENCES customers(user_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 7. Booking (Links Customer with ParkingSlot)
-----------------------------------------------------
 CREATE TABLE bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -91,9 +57,6 @@ CREATE TABLE bookings (
     FOREIGN KEY (slot_id) REFERENCES parking_slots(slot_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 8. Payment (Linked to Booking)
-----------------------------------------------------
 CREATE TABLE payments (
     payment_id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
@@ -103,9 +66,6 @@ CREATE TABLE payments (
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 9. OverstayAlert (Generated if Booking exceeds allotted time)
-----------------------------------------------------
 CREATE TABLE overstay_alerts (
     alert_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -116,9 +76,6 @@ CREATE TABLE overstay_alerts (
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 10. EventReservation (Reserves Parking Slots for Events)
-----------------------------------------------------
 CREATE TABLE event_reservations (
     event_id INT AUTO_INCREMENT PRIMARY KEY,
     organizer VARCHAR(100) NOT NULL,
@@ -129,9 +86,6 @@ CREATE TABLE event_reservations (
     FOREIGN KEY (lot_id) REFERENCES parking_lots(lot_id) ON DELETE CASCADE
 );
 
-----------------------------------------------------
--- 11. Admin-ParkingLot Assignment (Many-to-Many Relationship)
-----------------------------------------------------
 CREATE TABLE admin_parking_lots (
     admin_id INT NOT NULL,
     lot_id INT NOT NULL,
@@ -139,10 +93,6 @@ CREATE TABLE admin_parking_lots (
     FOREIGN KEY (admin_id) REFERENCES admins(user_id) ON DELETE CASCADE,
     FOREIGN KEY (lot_id) REFERENCES parking_lots(lot_id) ON DELETE CASCADE
 );
-
-----------------------------------------------------
--- Data Seeding: Sample Data.
-----------------------------------------------------
 
 INSERT INTO users (name, email, phone, password) VALUES
 ('Alice Johnson', 'alice@example.com', '555-0101', 'password1'),
@@ -186,3 +136,15 @@ INSERT INTO overstay_alerts (customer_id, booking_id, fine_amount, status) VALUE
 
 INSERT INTO event_reservations (organizer, lot_id, start_time, end_time, reserved_slots) VALUES
 ('University Events', 2, '2025-04-15 07:00:00', '2025-04-15 19:00:00', 10);
+
+INSERT INTO users (name, email, phone, password) VALUES
+('Admin User', 'admin@parkingsystem.com', '555-0404', 'securepassword');
+
+SET @new_admin_id = LAST_INSERT_ID();
+
+INSERT INTO admins (user_id, role) VALUES
+(@new_admin_id, 'admin');
+
+INSERT INTO admin_parking_lots (admin_id, lot_id) VALUES
+(@new_admin_id, 1),
+(@new_admin_id, 2);
