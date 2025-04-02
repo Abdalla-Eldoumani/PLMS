@@ -28,4 +28,16 @@ class Database {
     public function getLastInsertId() {
         return $this->conn->lastInsertId();
     }
+    
+    public function beginTransaction() {
+        return $this->conn->beginTransaction();
+    }
+    
+    public function commit() {
+        return $this->conn->commit();
+    }
+    
+    public function rollback() {
+        return $this->conn->rollBack();
+    }
 }
