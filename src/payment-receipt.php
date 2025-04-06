@@ -9,42 +9,45 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Check if payment ID is provided
-if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: payment-history.php");
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
-$payment_id = intval($_GET['id']);
 $db = new Database();
+$errors = [];
 
-// Get payment details with booking and slot information
-$payment = $db->query(
-    "SELECT p.*, b.booking_id, b.customer_id, b.start_time, b.end_time, b.status as booking_status,
-            ps.slot_number, ps.type as slot_type, ps.hourly_rate,
-            pl.name as lot_name, pl.location as lot_location,
-            u.name as customer_name, u.email as customer_email
-     FROM payments p 
-     JOIN bookings b ON p.booking_id = b.booking_id 
-     JOIN parking_slots ps ON b.slot_id = ps.slot_id 
-     JOIN parking_lots pl ON ps.lot_id = pl.lot_id 
-     JOIN users u ON b.customer_id = u.user_id
-     WHERE p.payment_id = ? AND b.customer_id = ?", 
-    [$payment_id, $user_id]
-)->fetch();
+// Get booking_id from URL
+$bookingId = filter_input(INPUT_GET, 'booking_id', FILTER_VALIDATE_INT);
 
-// If payment not found or doesn't belong to user, redirect
-if (!$payment) {
-    header("Location: payment-history.php");
+if (!$bookingId) {
+    header("Location: my-bookings.php");
     exit();
 }
 
-// Format the receipt number
-$receipt_number = sprintf("UCPS-%08d", $payment_id);
+// Get booking and payment details
+$booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.location, ps.hourly_rate,
+                              p.amount, p.payment_method, p.status as payment_status, p.payment_date
+                       FROM bookings b
+                       JOIN parking_slots ps ON b.slot_id = ps.slot_id
+                       JOIN parking_lots pl ON ps.lot_id = pl.lot_id
+                       JOIN payments p ON b.booking_id = p.booking_id
+                       WHERE b.booking_id = ? AND b.customer_id = ?", 
+                       [$bookingId, $_SESSION['user_id']])->fetch();
 
-// Calculate booking duration
-$duration = calculateDuration($payment['start_time'], $payment['end_time']);
+if (!$booking) {
+    header("Location: my-bookings.php");
+    exit();
+}
+
+// Get user details
+$user = $db->query("SELECT * FROM users WHERE user_id = ?", [$_SESSION['user_id']])->fetch();
+
+// Get vehicle details
+$vehicle = $db->query("SELECT v.* FROM vehicles v 
+                       JOIN bookings b ON v.vehicle_id = b.vehicle_id
+                       WHERE b.booking_id = ?", [$bookingId])->fetch();
+
+// Calculate duration
+$startDateTime = new DateTime($booking['start_time']);
+$endDateTime = new DateTime($booking['end_time']);
+$duration = $startDateTime->diff($endDateTime);
+$hours = $duration->h + ($duration->days * 24);
 ?>
 
 <!DOCTYPE html>
@@ -54,142 +57,129 @@ $duration = calculateDuration($payment['start_time'], $payment['end_time']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Receipt - UCalgary Parking</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/styles.css">
-    <style>
-        @media print {
-            .no-print {
-                display: none;
-            }
-            body {
-                background-color: white;
-                padding: 20px;
-            }
-            .receipt {
-                box-shadow: none;
-                border: 1px solid #eee;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body class="bg-gray-100 font-sans">
-    <!-- Navigation Bar (hidden in print) -->
-    <div class="no-print">
-        <?php include 'includes/header.php'; ?>
-    </div>
+    <?php include 'includes/header.php'; ?>
 
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-3xl mx-auto">
-            <!-- Back button (hidden in print) -->
-            <div class="mb-6 no-print">
-                <a href="payment-history.php" class="inline-flex items-center text-blue-600 hover:text-blue-800">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Back to Payment History
-                </a>
-            </div>
-            
-            <!-- Print button (hidden in print) -->
-            <div class="flex justify-end mb-4 no-print">
-                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print Receipt
-                </button>
-            </div>
-            
-            <!-- Receipt -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden receipt">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
                 <!-- Receipt Header -->
-                <div class="bg-red-700 text-white px-6 py-4 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-xl font-bold">Payment Receipt</h2>
-                        <p class="text-sm"><?php echo $receipt_number; ?></p>
-                    </div>
-                    <div class="text-right">
-                        <img src="assets/images/ucalgary-logo-white.png" alt="UCalgary Logo" class="h-10">
+                <div class="bg-red-700 text-white px-6 py-4">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold">Payment Receipt</h1>
+                        <div class="text-right">
+                            <p class="text-sm">Receipt #<?php echo str_pad($booking['booking_id'], 8, '0', STR_PAD_LEFT); ?></p>
+                            <p class="text-sm"><?php echo date('M d, Y', strtotime($booking['payment_date'])); ?></p>
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Receipt Content -->
                 <div class="p-6">
-                    <!-- Receipt Date -->
-                    <div class="text-right mb-6">
-                        <p class="text-sm text-gray-600">Receipt Date:</p>
-                        <p class="font-medium"><?php echo date('F d, Y', strtotime($payment['payment_date'])); ?></p>
+                    <!-- Customer Information -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold mb-4">Customer Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-600">Name</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($user['name']); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Email</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($user['email']); ?></p>
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- Customer & Parking Information -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <h3 class="text-lg font-semibold mb-3">Customer Information</h3>
-                            <p class="mb-1"><span class="font-medium">Name:</span> <?php echo htmlspecialchars($payment['customer_name']); ?></p>
-                            <p class="mb-1"><span class="font-medium">Email:</span> <?php echo htmlspecialchars($payment['customer_email']); ?></p>
-                            <p><span class="font-medium">Booking ID:</span> <?php echo htmlspecialchars($payment['booking_id']); ?></p>
+                    <!-- Booking Details -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold mb-4">Booking Details</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-600">Location</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($booking['lot_name']); ?> - <?php echo htmlspecialchars($booking['location']); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Slot Number</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($booking['slot_number']); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Start Time</p>
+                                <p class="font-medium"><?php echo date('F j, Y g:i A', strtotime($booking['start_time'])); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">End Time</p>
+                                <p class="font-medium"><?php echo date('F j, Y g:i A', strtotime($booking['end_time'])); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Duration</p>
+                                <p class="font-medium"><?php echo $hours; ?> hours</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Rate</p>
+                                <p class="font-medium">$<?php echo number_format($booking['hourly_rate'], 2); ?>/hour</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vehicle Information -->
+                    <?php if ($vehicle): ?>
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold mb-4">Vehicle Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-600">License Plate</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($vehicle['license_plate']); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Vehicle Type</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($vehicle['vehicle_type']); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Payment Information -->
+                    <div class="mb-8">
+                        <h2 class="text-lg font-semibold mb-4">Payment Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-gray-600">Payment Method</p>
+                                <p class="font-medium"><?php echo htmlspecialchars($booking['payment_method']); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Payment Date</p>
+                                <p class="font-medium"><?php echo date('F j, Y g:i A', strtotime($booking['payment_date'])); ?></p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Payment Status</p>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Paid</span>
+                            </div>
                         </div>
                         
-                        <div>
-                            <h3 class="text-lg font-semibold mb-3">Parking Information</h3>
-                            <p class="mb-1"><span class="font-medium">Location:</span> <?php echo htmlspecialchars($payment['lot_name']); ?></p>
-                            <p class="mb-1"><span class="font-medium">Parking Slot:</span> <?php echo htmlspecialchars($payment['slot_number']); ?> (<?php echo htmlspecialchars($payment['slot_type']); ?>)</p>
-                            <p class="mb-1">
-                                <span class="font-medium">Duration:</span> 
-                                <?php echo date('M d, Y h:i A', strtotime($payment['start_time'])); ?> - 
-                                <?php echo date('M d, Y h:i A', strtotime($payment['end_time'])); ?>
-                            </p>
-                            <p><span class="font-medium">Total Hours:</span> <?php echo $duration['hours']; ?> hours <?php echo $duration['minutes']; ?> minutes</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Details -->
-                    <div class="border-t border-gray-200 pt-6 mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Payment Details</h3>
-                        
-                        <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                            <div class="flex justify-between mb-2">
-                                <span>Payment Date:</span>
-                                <span><?php echo date('F d, Y h:i A', strtotime($payment['payment_date'])); ?></span>
-                            </div>
-                            
-                            <div class="flex justify-between mb-2">
-                                <span>Payment Method:</span>
-                                <span><?php echo htmlspecialchars($payment['payment_method']); ?></span>
-                            </div>
-                            
-                            <div class="flex justify-between mb-2">
-                                <span>Description:</span>
-                                <span><?php echo htmlspecialchars($payment['description'] ?? 'Parking fee'); ?></span>
-                            </div>
-                            
-                            <div class="flex justify-between font-bold text-lg border-t border-gray-300 pt-2 mt-2">
-                                <span>Total Amount:</span>
-                                <span>$<?php echo number_format($payment['amount'], 2); ?></span>
+                        <!-- Payment Summary -->
+                        <div class="mt-6 border-t border-gray-200 pt-4">
+                            <div class="flex justify-between items-center">
+                                <p class="text-gray-600">Total Amount</p>
+                                <p class="text-2xl font-bold">$<?php echo number_format($booking['amount'], 2); ?></p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Terms and Notes -->
-                    <div class="text-sm text-gray-600 border-t border-gray-200 pt-6">
-                        <p class="mb-2">Thank you for using UCalgary Parking Services.</p>
-                        <p class="mb-2">This receipt serves as proof of payment for your parking booking.</p>
-                        <p>For questions or assistance, please contact parking services at plms@ucalgary.ca or call (403) 555-1234.</p>
+                    <!-- Actions -->
+                    <div class="flex justify-end space-x-4">
+                        <a href="my-bookings.php" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                            Back to My Bookings
+                        </a>
+                        <button onclick="window.print()" class="bg-red-700 text-white px-6 py-2 rounded-lg hover:bg-red-800 transition">
+                            Print Receipt
+                        </button>
                     </div>
-                </div>
-                
-                <!-- Receipt Footer -->
-                <div class="bg-gray-50 px-6 py-4 text-center text-sm text-gray-600 border-t border-gray-200">
-                    <p>University of Calgary Parking Management System</p>
-                    <p>2500 University Dr NW, Calgary, AB T2N 1N4</p>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Footer (hidden in print) -->
-    <div class="no-print">
-        <?php include 'includes/footer.php'; ?>
-    </div>
-
-    <script src="assets/js/main.js"></script>
 </body>
 </html>
