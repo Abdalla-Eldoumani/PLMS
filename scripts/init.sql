@@ -1,4 +1,17 @@
-CREATE DATABASE parking_management;
+CREATE DATABASE IF NOT EXISTS parking_management;
+USE parking_management;
+
+DROP TABLE IF EXISTS admin_parking_lots;
+DROP TABLE IF EXISTS overstay_alerts;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS bookings;
+DROP TABLE IF EXISTS vehicles;
+DROP TABLE IF EXISTS event_reservations;
+DROP TABLE IF EXISTS parking_slots;
+DROP TABLE IF EXISTS parking_lots;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,6 +56,7 @@ CREATE TABLE vehicles (
     license_plate VARCHAR(20) NOT NULL UNIQUE,
     vehicle_type ENUM('Sedan','SUV','Truck','Other') NOT NULL,
     owner_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES customers(user_id) ON DELETE CASCADE
 );
 

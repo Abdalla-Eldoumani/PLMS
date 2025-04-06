@@ -19,6 +19,8 @@ $userType = $_GET['type'] ?? 'customer';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF protection
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $errors[] = "Invalid form submission";
+    } else {
         // Validate form data
         $name = isset($_POST['name']) ? trim(htmlspecialchars($_POST['name'])) : '';
         $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
@@ -58,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             } else {
                 $errors[] = $result['message'];
+                error_log("Registration failed: " . $result['message']);
             }
         }
     }

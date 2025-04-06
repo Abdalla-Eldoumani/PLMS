@@ -1,21 +1,24 @@
 <?php
 class Database {
-    private $host = "db";
-    public $user;
-    public $pass;
-    public $dbname;
+    private $host = "localhost";
+    private $user = "root";
+    private $pass = "";
+    private $dbname = "parking_management";
     private $conn;
     
     public function __construct() {
-        $this->user = getenv('MYSQL_USER');
-        $this->pass = getenv('MYSQL_PASSWORD');
-        $this->dbname = getenv('MYSQL_DATABASE');
+        if (getenv('MYSQL_HOST')) $this->host = getenv('MYSQL_HOST');
+        if (getenv('MYSQL_USER')) $this->user = getenv('MYSQL_USER');
+        if (getenv('MYSQL_PASSWORD')) $this->pass = getenv('MYSQL_PASSWORD');
+        if (getenv('MYSQL_DATABASE')) $this->dbname = getenv('MYSQL_DATABASE');
+        
         try {
             $this->conn = new PDO("mysql:host={$this->host};dbname={$this->dbname}", $this->user, $this->pass);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         } catch(PDOException $e) {
-            die("Connection failed: " . $e->getMessage());
+            error_log("Database connection failed: " . $e->getMessage());
+            die("Database connection failed. Please check your configuration.");
         }
     }
     

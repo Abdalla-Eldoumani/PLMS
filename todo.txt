@@ -1,0 +1,5 @@
+Booking Details Page (booking-details.php)
+Extend Booking Page (extend-booking.php)
+Payment History Page (payment-history.php)
+Payment Receipt Page (payment-receipt.php)
+Pay Fine Page (pay-fine.php)
