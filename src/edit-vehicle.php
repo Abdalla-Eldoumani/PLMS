@@ -67,9 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $success = true;
                 
-                // Log activity
-                logActivity($user_id, 'vehicle_update', "User updated vehicle: {$license_plate}", $db);
-                
                 // Refresh vehicle data
                 $vehicle = $db->query("SELECT * FROM vehicles WHERE vehicle_id = ?", [$vehicle_id])->fetch();
                 
