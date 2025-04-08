@@ -48,16 +48,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'cancel' && isset($_GET['id'])
                 
                 $db->commit();
                 
-                // Log activity
-                logActivity($user_id, 'booking_cancel', "User cancelled booking #{$booking_id}", $db);
-                
                 $message = [
                     'type' => 'success',
                     'text' => 'Booking cancelled successfully.'
                 ];
                 
             } catch (Exception $e) {
-                $db->rollback();
+                if ($db->inTransaction()) {
+                    $db->rollback();
+                }
                 $message = [
                     'type' => 'error',
                     'text' => 'An error occurred while cancelling the booking: ' . $e->getMessage()

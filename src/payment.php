@@ -23,7 +23,7 @@ if (!$bookingId) {
 
 // Get booking and payment details
 $booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.location, ps.hourly_rate,
-                              p.amount, p.payment_method, p.status as payment_status
+                              p.amount, p.payment_method
                        FROM bookings b
                        JOIN parking_slots ps ON b.slot_id = ps.slot_id
                        JOIN parking_lots pl ON ps.lot_id = pl.lot_id
@@ -38,7 +38,7 @@ if (!$booking) {
 
 // Process payment form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $paymentMethod = filter_input(INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING);
+    $paymentMethod = htmlspecialchars($_POST['payment_method'] ?? ''); 
     
     // Validation
     if (!in_array($paymentMethod, ['Card', 'Mobile Pay', 'Cash'])) {
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update payment record
         try {
             $db->query("UPDATE payments 
-                       SET payment_method = ?, status = 'Completed'
+                       SET payment_method = ?
                        WHERE booking_id = ?", 
                        [$paymentMethod, $bookingId]);
             
@@ -136,11 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="radio" id="card" name="payment_method" value="Card" required
                                    class="h-4 w-4 text-red-700 focus:ring-red-500">
                             <label for="card" class="ml-2 block text-gray-700">Credit/Debit Card</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="radio" id="mobile" name="payment_method" value="Mobile Pay" required
-                                   class="h-4 w-4 text-red-700 focus:ring-red-500">
-                            <label for="mobile" class="ml-2 block text-gray-700">Mobile Payment</label>
                         </div>
                         <div class="flex items-center">
                             <input type="radio" id="cash" name="payment_method" value="Cash" required

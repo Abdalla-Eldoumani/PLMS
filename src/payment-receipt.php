@@ -22,7 +22,7 @@ if (!$bookingId) {
 
 // Get booking and payment details
 $booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.location, ps.hourly_rate,
-                              p.amount, p.payment_method, p.status as payment_status, p.payment_date
+                              p.amount, p.payment_method, p.payment_date
                        FROM bookings b
                        JOIN parking_slots ps ON b.slot_id = ps.slot_id
                        JOIN parking_lots pl ON ps.lot_id = pl.lot_id
@@ -40,7 +40,8 @@ $user = $db->query("SELECT * FROM users WHERE user_id = ?", [$_SESSION['user_id'
 
 // Get vehicle details
 $vehicle = $db->query("SELECT v.* FROM vehicles v 
-                       JOIN bookings b ON v.vehicle_id = b.vehicle_id
+                       JOIN customers c ON v.owner_id = c.user_id
+                       JOIN bookings b ON b.customer_id = c.user_id
                        WHERE b.booking_id = ?", [$bookingId])->fetch();
 
 // Calculate duration
@@ -152,10 +153,6 @@ $hours = $duration->h + ($duration->days * 24);
                             <div>
                                 <p class="text-gray-600">Payment Date</p>
                                 <p class="font-medium"><?php echo date('F j, Y g:i A', strtotime($booking['payment_date'])); ?></p>
-                            </div>
-                            <div>
-                                <p class="text-gray-600">Payment Status</p>
-                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Paid</span>
                             </div>
                         </div>
                         

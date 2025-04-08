@@ -83,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $bookingId = $db->getLastInsertId();
             
             // Create payment record
-            $db->query("INSERT INTO payments (booking_id, amount, payment_method, status) 
-                       VALUES (?, ?, 'Pending', 'Pending')", 
+            $db->query("INSERT INTO payments (booking_id, amount, payment_method) 
+                       VALUES (?, ?, 'Card')", 
                        [$bookingId, $totalCost]);
             
             $db->query("COMMIT");

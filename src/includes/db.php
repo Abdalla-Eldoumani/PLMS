@@ -43,4 +43,8 @@ class Database {
     public function rollback() {
         return $this->conn->rollBack();
     }
+    
+    public function inTransaction() {
+        return $this->conn->inTransaction();
+    }
 }
