@@ -96,6 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
                                VALUES (?, ?, 'Pending', 'Pending')", 
                                [$bookingId, $additionalCost]);
                     
+                    // Ensure the slot status remains Occupied
+                    $db->query("UPDATE parking_slots ps 
+                               JOIN bookings b ON ps.slot_id = b.slot_id 
+                               SET ps.status = 'Occupied' 
+                               WHERE b.booking_id = ?", [$bookingId]);
+                    
                     $db->query("COMMIT");
                     
                     // Redirect to payment page

@@ -56,6 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update booking status
             $db->query("UPDATE bookings SET status = 'Active' WHERE booking_id = ?", [$bookingId]);
             
+            // Ensure the slot status is set to Occupied
+            $db->query("UPDATE parking_slots ps 
+                       JOIN bookings b ON ps.slot_id = b.slot_id 
+                       SET ps.status = 'Occupied' 
+                       WHERE b.booking_id = ?", [$bookingId]);
+            
             $success = true;
             
             // Redirect to receipt page after a short delay

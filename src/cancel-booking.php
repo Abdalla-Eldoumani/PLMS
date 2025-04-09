@@ -76,6 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             $db->query("UPDATE bookings SET status = 'Cancelled', updated_at = NOW() WHERE booking_id = ?", 
                        [$bookingId]);
             
+            // Update slot status to Available
+            $db->query("UPDATE parking_slots ps 
+                       JOIN bookings b ON ps.slot_id = b.slot_id 
+                       SET ps.status = 'Available' 
+                       WHERE b.booking_id = ?", [$bookingId]);
+            
             // If payment was made, process refund
             if ($booking['payment_status'] === 'Completed') {
                 // In a real system, you would integrate with a payment processor here

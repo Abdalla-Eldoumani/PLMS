@@ -6,6 +6,13 @@
  * to users regarding their parking bookings, payments, and other system events.
  */
 
+// SMTP Configuration
+ini_set('SMTP', 'smtp.gmail.com');
+ini_set('smtp_port', 587);
+ini_set('sendmail_from', 'aamsdoumani@gmail.com');
+ini_set('smtp_user', 'aamsdoumani@gmail.com');
+ini_set('smtp_pass', 'badq thsi cnzf tqxy');
+
 /**
  * Send an email notification
  * 
@@ -35,12 +42,33 @@ function sendEmail($to, $subject, $body, $textBody = '') {
 }
 
 /**
+ * Send a password reset email to the user
+ * 
+ * @param string $email User's email address
+ * @param string $resetLink The password reset link
+ * @return bool Whether the email was sent successfully
+ */
+function sendPasswordResetEmail($email, $resetLink) {
+    $subject = "Password Reset Request - UCalgary Parking";
+    
+    $message = "Hello,\n\n";
+    $message .= "You have requested to reset your password for your UCalgary Parking account.\n\n";
+    $message .= "To reset your password, please click the following link:\n";
+    $message .= $resetLink . "\n\n";
+    $message .= "This link will expire in 1 hour.\n\n";
+    $message .= "If you did not request a password reset, please ignore this email.\n\n";
+    $message .= "Best regards,\nUCalgary Parking Team";
+    
+    return sendEmail($email, $subject, '', $message);
+}
+
+/**
  * Send a booking confirmation email
  * 
  * @param array $booking Booking details
  * @param array $user User details
  * @param array $vehicle Vehicle details
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendBookingConfirmation($booking, $user, $vehicle) {
     $subject = "Booking Confirmation - UCalgary Parking";
@@ -122,7 +150,7 @@ function sendBookingConfirmation($booking, $user, $vehicle) {
  * @param array $booking Booking details
  * @param array $user User details
  * @param array $payment Payment details
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendPaymentConfirmation($booking, $user, $payment) {
     $subject = "Payment Confirmation - UCalgary Parking";
@@ -191,7 +219,7 @@ function sendPaymentConfirmation($booking, $user, $payment) {
  * @param array $user User details
  * @param array $payment Payment details for the extension
  * @param string $oldEndTime Previous end time
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendExtensionConfirmation($booking, $user, $payment, $oldEndTime) {
     $subject = "Booking Extension Confirmation - UCalgary Parking";
@@ -266,7 +294,7 @@ function sendExtensionConfirmation($booking, $user, $payment, $oldEndTime) {
  * 
  * @param array $booking Booking details
  * @param array $user User details
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendBookingReminder($booking, $user) {
     $subject = "Upcoming Parking Booking Reminder - UCalgary Parking";
@@ -335,7 +363,7 @@ function sendBookingReminder($booking, $user) {
  * 
  * @param array $booking Booking details
  * @param array $user User details
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendExpiringBookingNotification($booking, $user) {
     $subject = "Your Parking Booking is Expiring Soon - UCalgary Parking";
@@ -403,7 +431,7 @@ function sendExpiringBookingNotification($booking, $user) {
  * @param array $booking Booking details
  * @param array $user User details
  * @param array $vehicle Vehicle details
- * @return bool Whether the email was sent successfully
+ * @return bool Whether the email was logged successfully
  */
 function sendCancellationEmail($booking, $user, $vehicle) {
     $subject = "Booking Cancellation Confirmation - UCalgary Parking";

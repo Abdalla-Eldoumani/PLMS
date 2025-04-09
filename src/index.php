@@ -1,5 +1,68 @@
 <?php
 session_start();
+require_once 'includes/db.php';
+require_once 'includes/functions.php';
+
+$db = new Database();
+
+// Get all parking lots
+try {
+    $lots = $db->query(
+        "SELECT * FROM parking_lots ORDER BY lot_id"
+    )->fetchAll();
+    
+    if (empty($lots)) {
+        error_log("No parking lots found in the database");
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching parking lots: " . $e->getMessage());
+    $lots = [];
+}
+
+// Get availability for each lot
+$availability = [];
+foreach ($lots as $lot) {
+    try {
+        // Get total slots
+        $totalSlots = $db->query(
+            "SELECT COUNT(*) as total FROM parking_slots WHERE lot_id = ?",
+            [$lot['lot_id']]
+        )->fetch()['total'];
+        
+        // Get available slots
+        $availableSlots = $db->query(
+            "SELECT COUNT(*) as available FROM parking_slots WHERE lot_id = ? AND status = 'Available'",
+            [$lot['lot_id']]
+        )->fetch()['available'];
+        
+        // Get slot types and rates
+        $slotTypes = $db->query(
+            "SELECT type, COUNT(*) as count, MIN(hourly_rate) as min_rate, MAX(hourly_rate) as max_rate 
+             FROM parking_slots 
+             WHERE lot_id = ? 
+             GROUP BY type",
+            [$lot['lot_id']]
+        )->fetchAll();
+        
+        $availability[$lot['lot_id']] = [
+            'total' => $totalSlots,
+            'available' => $availableSlots,
+            'occupancy' => $totalSlots > 0 ? round(($totalSlots - $availableSlots) / $totalSlots * 100) : 0,
+            'slot_types' => $slotTypes
+        ];
+    } catch (PDOException $e) {
+        error_log("Error fetching availability for lot {$lot['lot_id']}: " . $e->getMessage());
+        $availability[$lot['lot_id']] = [
+            'total' => 0,
+            'available' => 0,
+            'occupancy' => 0,
+            'slot_types' => []
+        ];
+    }
+}
+
+// Check if user is logged in
+$isLoggedIn = isset($_SESSION['user_id']);
 ?>
 
 <!DOCTYPE html>
@@ -19,7 +82,7 @@ session_start();
                 <a class="text-xl font-bold" href="index.php">Parking Management System</a>
             </div>
             <div class="space-x-4">
-                <?php if(isset($_SESSION['user_id'])): ?>
+                <?php if($isLoggedIn): ?>
                     <a href="dashboard.php" class="hover:text-gray-200">Dashboard</a>
                     <a href="logout.php" class="bg-white text-red-700 px-4 py-2 rounded hover:bg-gray-200">Logout</a>
                 <?php else: ?>
@@ -40,7 +103,9 @@ session_start();
             <!-- Quick Action Buttons -->
             <div class="flex flex-wrap justify-center gap-4 mb-8">
                 <a href="find-parking.php" class="bg-white text-red-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition">Find Available Parking</a>
-                <a href="register.php" class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-lg font-bold hover:bg-white hover:text-red-700 transition">Create Account</a>
+                <?php if (!$isLoggedIn): ?>
+                    <a href="register.php" class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-lg font-bold hover:bg-white hover:text-red-700 transition">Create Account</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -50,27 +115,40 @@ session_start();
         <h3 class="text-2xl font-bold text-center mb-8">Current Parking Availability</h3>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <?php
-            $parkingLots = [
-                ['id' => 1, 'name' => 'Lot A - North Campus', 'available' => 23, 'total' => 50],
-                ['id' => 2, 'name' => 'Lot B - South Campus', 'available' => 8, 'total' => 30]
-            ];
-            
-            foreach ($parkingLots as $lot):
-                $percentFull = (($lot['total'] - $lot['available']) / $lot['total']) * 100;
+            <?php foreach ($lots as $lot): 
+                $percentFull = $availability[$lot['lot_id']]['occupancy'];
                 $statusColor = $percentFull > 80 ? 'bg-red-500' : ($percentFull > 50 ? 'bg-yellow-500' : 'bg-green-500');
             ?>
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
                 <div class="p-6">
-                    <h4 class="text-xl font-semibold mb-2"><?php echo $lot['name']; ?></h4>
+                    <h4 class="text-xl font-semibold mb-2"><?php echo htmlspecialchars($lot['name']); ?></h4>
+                    <p class="text-gray-600 mb-2"><?php echo htmlspecialchars($lot['location']); ?></p>
                     <div class="flex justify-between mb-2">
                         <span>Available Spaces:</span>
-                        <span class="font-bold"><?php echo $lot['available']; ?> / <?php echo $lot['total']; ?></span>
+                        <span class="font-bold"><?php echo $availability[$lot['lot_id']]['available']; ?> / <?php echo $availability[$lot['lot_id']]['total']; ?></span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2.5">
                         <div class="<?php echo $statusColor; ?> h-2.5 rounded-full" style="width: <?php echo $percentFull; ?>%"></div>
                     </div>
-                    <a href="lot-details.php?id=<?php echo $lot['id']; ?>" class="block text-center mt-4 bg-gray-800 text-white py-2 rounded hover:bg-gray-700 transition">View Details</a>
+                    <div class="mt-4">
+                        <h5 class="font-medium mb-1">Spot Types & Rates:</h5>
+                        <ul class="text-sm space-y-1">
+                            <?php foreach ($availability[$lot['lot_id']]['slot_types'] as $type): ?>
+                                <li>
+                                    <span class="font-medium"><?php echo htmlspecialchars($type['type']); ?>:</span> 
+                                    <?php echo $type['count']; ?> spots at $<?php echo number_format($type['min_rate'], 2); ?>/hour
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <?php if ($isLoggedIn): ?>
+                            <a href="find-parking.php?lot_id=<?php echo $lot['lot_id']; ?>" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">Book a Spot</a>
+                        <?php else: ?>
+                            <a href="login.php" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">Login to Book</a>
+                        <?php endif; ?>
+                        <a href="lot-details.php?lot_id=<?php echo $lot['lot_id']; ?>" class="text-red-700 hover:text-red-900">View Details</a>
+                    </div>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -120,139 +198,8 @@ session_start();
         </div>
     </div>
 
-    <!-- User Type Selection -->
-    <div class="container mx-auto px-4 py-16">
-        <h3 class="text-2xl font-bold text-center mb-8">Choose Your Parking Solution</h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:border-red-500 transition">
-                <div class="p-6">
-                    <h4 class="text-xl font-semibold mb-4 text-center">Students</h4>
-                    <ul class="mb-6 space-y-2">
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Special semester rates
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Hourly booking for class schedules
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Off-peak discounts
-                        </li>
-                    </ul>
-                    <a href="register.php?type=student" class="block text-center bg-red-700 text-white py-2 rounded hover:bg-red-800 transition">Student Registration</a>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:border-red-500 transition">
-                <div class="p-6">
-                    <h4 class="text-xl font-semibold mb-4 text-center">Faculty & Staff</h4>
-                    <ul class="mb-6 space-y-2">
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Monthly subscription plans
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Reserved faculty parking zones
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Extended parking hours
-                        </li>
-                    </ul>
-                    <a href="register.php?type=faculty" class="block text-center bg-red-700 text-white py-2 rounded hover:bg-red-800 transition">Faculty Registration</a>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:border-red-500 transition">
-                <div class="p-6">
-                    <h4 class="text-xl font-semibold mb-4 text-center">Visitors</h4>
-                    <ul class="mb-6 space-y-2">
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Hourly and daily rates
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Guest parking areas
-                        </li>
-                        <li class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            No registration required
-                        </li>
-                    </ul>
-                    <a href="visitor-parking.php" class="block text-center bg-red-700 text-white py-2 rounded hover:bg-red-800 transition">Find Visitor Parking</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-8">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <h5 class="font-bold mb-4">Parking Management</h5>
-                    <ul class="space-y-2">
-                        <li><a href="about.php" class="hover:text-red-400">About</a></li>
-                        <li><a href="contact.php" class="hover:text-red-400">Contact Us</a></li>
-                        <li><a href="faq.php" class="hover:text-red-400">FAQ</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h5 class="font-bold mb-4">Quick Links</h5>
-                    <ul class="space-y-2">
-                        <li><a href="find-parking.php" class="hover:text-red-400">Find Parking</a></li>
-                        <li><a href="rates.php" class="hover:text-red-400">Parking Rates</a></li>
-                        <li><a href="subscriptions.php" class="hover:text-red-400">Subscription Plans</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h5 class="font-bold mb-4">Legal</h5>
-                    <ul class="space-y-2">
-                        <li><a href="terms.php" class="hover:text-red-400">Terms of Service</a></li>
-                        <li><a href="privacy.php" class="hover:text-red-400">Privacy Policy</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h5 class="font-bold mb-4">Contact</h5>
-                    <p>University of Calgary</p>
-                    <p>2500 University Dr NW</p>
-                    <p>Calgary, AB T2N 1N4</p>
-                    <p>Email: plms@ucalgary.ca</p>
-                </div>
-            </div>
-            
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-                <p>&copy; <?php echo date('Y'); ?> University of Calgary Parking Management System. All rights reserved.</p>
-                <p class="mt-2">Developed for CPSC 471 Project</p>
-            </div>
-        </div>
-    </footer>
+    <?php include 'includes/footer.php'; ?>
 
     <script src="assets/js/main.js"></script>
 </body>

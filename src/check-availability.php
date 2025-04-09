@@ -59,6 +59,7 @@ $query = "SELECT ps.*, pl.name as lot_name, pl.location,
          JOIN parking_lots pl ON ps.lot_id = pl.lot_id
          WHERE ps.lot_id = ?
          AND ps.type = ?
+         AND ps.status = 'Available'
          HAVING is_booked = 0
          ORDER BY ps.slot_number";
 

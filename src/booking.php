@@ -87,6 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        VALUES (?, ?, 'Card')", 
                        [$bookingId, $totalCost]);
             
+            // Update slot status to Occupied
+            $db->query("UPDATE parking_slots SET status = 'Occupied' WHERE slot_id = ?", [$slotId]);
+            
             $db->query("COMMIT");
             
             // Redirect to payment page
