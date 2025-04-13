@@ -282,7 +282,7 @@ INSERT INTO event_reservations (organizer, lot_id, start_time, end_time, reserve
 ('University Events', 2, '2025-04-15 07:00:00', '2025-04-15 19:00:00', 10);
 
 INSERT INTO users (name, email, phone, password) VALUES
-('Admin User', 'admin@parkingsystem.com', '555-0404', 'securepassword');
+('Admin User', 'admin@parkingsystem.com', '555-0404', '$2y$12$NLReMHRQtfFO3/g/xIZ/8uNVKkDSd2UYCJ6lGFzXqzmhfeSamwEfW');
 
 SET @new_admin_id = LAST_INSERT_ID();
 

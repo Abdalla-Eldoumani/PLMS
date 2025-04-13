@@ -52,13 +52,14 @@ class Auth {
     }
     
     public function login($email, $password) {
-        // Get user by email
+        // Get user by email with expanded admin info
         $query = "SELECT u.user_id, u.name, u.email, u.password, 
                  CASE 
                     WHEN a.user_id IS NOT NULL THEN 'admin' 
                     WHEN c.user_id IS NOT NULL THEN 'customer' 
                     ELSE 'unknown' 
-                 END as user_type
+                 END as user_type,
+                 a.role as admin_role
                  FROM users u
                  LEFT JOIN admins a ON u.user_id = a.user_id
                  LEFT JOIN customers c ON u.user_id = c.user_id
@@ -83,10 +84,16 @@ class Auth {
         $_SESSION['email'] = $user['email'];
         $_SESSION['user_type'] = $user['user_type'];
         
+        // If user is admin, store admin role
+        if ($user['user_type'] === 'admin') {
+            $_SESSION['admin_role'] = $user['admin_role'];
+        }
+        
         return [
             'success' => true, 
             'user_id' => $user['user_id'], 
-            'user_type' => $user['user_type']
+            'user_type' => $user['user_type'],
+            'admin_role' => $user['admin_role'] ?? null
         ];
     }
     
@@ -96,6 +103,10 @@ class Auth {
     
     public function isAdmin() {
         return $this->isLoggedIn() && $_SESSION['user_type'] === 'admin';
+    }
+    
+    public function isSuperAdmin() {
+        return $this->isAdmin() && ($_SESSION['admin_role'] === 'Super' || $_SESSION['admin_role'] === 'Administrator');
     }
     
     public function isCustomer() {
@@ -114,5 +125,9 @@ class Auth {
     
     public function getCurrentUserId() {
         return $_SESSION['user_id'] ?? null;
+    }
+    
+    public function getAdminRole() {
+        return $_SESSION['admin_role'] ?? null;
     }
 }

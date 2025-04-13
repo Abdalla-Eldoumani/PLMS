@@ -6,11 +6,16 @@ $auth = new Auth();
 
 // Redirect if already logged in
 if ($auth->isLoggedIn()) {
-    header('Location: dashboard.php');
+    if ($auth->isAdmin()) {
+        header('Location: admin/dashboard.php');
+    } else {
+        header('Location: dashboard.php');
+    }
     exit;
 }
 
 $errors = [];
+$success = null;
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -89,6 +94,12 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 </div>
             <?php endif; ?>
             
+            <?php if ($success): ?>
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    <?php echo htmlspecialchars($success); ?>
+                </div>
+            <?php endif; ?>
+            
             <form method="POST" action="login.php">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 
@@ -125,10 +136,11 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         document.addEventListener('DOMContentLoaded', function() {
             // Add toggle buttons to password fields
             addPasswordToggle('password');
-            addPasswordToggle('confirm_password');
             
             function addPasswordToggle(fieldId) {
                 const passwordField = document.getElementById(fieldId);
+                if (!passwordField) return;
+                
                 const passwordContainer = passwordField.parentElement;
                 
                 // Create wrapper to maintain layout
