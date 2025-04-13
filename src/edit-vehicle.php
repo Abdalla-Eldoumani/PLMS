@@ -101,7 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="p-6">
                     <?php if ($success): ?>
                         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-                            <p>Vehicle updated successfully!</p>
+                            <p>Vehicle added successfully!</p>
+                            <div class="mt-3">
+                                <a href="my-vehicles.php" class="text-green-700 font-semibold hover:underline">Return to My Vehicles</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                     
