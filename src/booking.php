@@ -67,18 +67,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Calculate duration and cost
         $startDateTime = new DateTime($startTime);
         $endDateTime = new DateTime($endTime);
-        $duration = $startDateTime->diff($endDateTime);
-        $hours = $duration->h + ($duration->days * 24);
+        $durationInMinutes = ($endDateTime->getTimestamp() - $startDateTime->getTimestamp()) / 60;
+        $hours = ceil($durationInMinutes / 60);
         $totalCost = $hours * $slot['hourly_rate'];
+        
         
         // Begin transaction
         $db->query("START TRANSACTION");
         
         try {
             // Create booking
-            $db->query("INSERT INTO bookings (customer_id, slot_id, start_time, end_time, status) 
-                       VALUES (?, ?, ?, ?, 'Active')", 
-                       [$_SESSION['user_id'], $slotId, $startTime, $endTime]);
+            $db->query("INSERT INTO bookings (customer_id, slot_id, vehicle_id, start_time, end_time, status) 
+                       VALUES (?, ?, ?, ?, ?,'Active')", 
+                       [$_SESSION['user_id'], $slotId, $vehicleId, $startTime, $endTime]);
             
             $bookingId = $db->getLastInsertId();
             
@@ -157,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php
                     $startDateTime = new DateTime($startTime);
                     $endDateTime = new DateTime($endTime);
-                    $duration = $startDateTime->diff($endDateTime);
-                    $hours = $duration->h + ($duration->days * 24);
+                    $durationInMinutes = ($endDateTime->getTimestamp() - $startDateTime->getTimestamp()) / 60;
+                    $hours = ceil($durationInMinutes / 60);
                     $totalCost = $hours * $slot['hourly_rate'];
                     ?>
                     <div>

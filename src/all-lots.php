@@ -138,6 +138,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
             <?php endforeach; ?>
         </div>
         
+        <?php if (!$isLoggedIn): ?>
         <div class="mt-8 bg-white rounded-lg shadow-md p-6">
             <h3 class="text-xl font-bold mb-4">Need to Book a Parking Spot?</h3>
             <p class="mb-4">Create an account to book parking spots, manage your vehicles, and view your booking history.</p>
@@ -146,6 +147,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 <a href="login.php" class="border border-red-700 text-red-700 px-6 py-2 rounded hover:bg-red-50">Login</a>
             </div>
         </div>
+        <?php endif; ?>
     </main>
 
     <!-- Footer -->

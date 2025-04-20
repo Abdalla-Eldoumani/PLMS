@@ -64,12 +64,14 @@ CREATE TABLE vehicles (
 CREATE TABLE bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
+    vehicle_id INT NOT NULL,
     slot_id INT NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     status ENUM('Active','Completed','Cancelled') NOT NULL DEFAULT 'Active',
     FOREIGN KEY (customer_id) REFERENCES customers(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (slot_id) REFERENCES parking_slots(slot_id) ON DELETE CASCADE
+    FOREIGN KEY (slot_id) REFERENCES parking_slots(slot_id) ON DELETE CASCADE,
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles(vehicle_id) ON DELETE CASCADE
 );
 
 CREATE TABLE payments (

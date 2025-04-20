@@ -183,15 +183,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flatpickr("#start_time", {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
-            minDate: "today",
-            time_24hr: true
+            time_24hr: true,
+            minDate: new Date(),
+            defaultDate: document.getElementById("start_time").value ? null : new Date()
         });
-        
+
         flatpickr("#end_time", {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
-            minDate: "today",
-            time_24hr: true
+            time_24hr: true,
+            minDate: new Date()
         });
 
         // Real-time availability checking

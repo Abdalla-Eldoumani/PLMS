@@ -274,7 +274,7 @@ $alerts = $db->query("SELECT * FROM overstay_alerts
                                             <p class="text-gray-500 text-xs"><?php echo htmlspecialchars($payment['payment_method']); ?></p>
                                         </div>
                                         <div>
-                                            <a href="payment-receipt.php?id=<?php echo $payment['payment_id']; ?>" class="text-blue-600 hover:text-blue-900 text-sm">Receipt</a>
+                                            <a href="payment-receipt.php?booking_id=<?php echo $payment['booking_id']; ?>" class="text-blue-600 hover:text-blue-900 text-sm">Receipt</a>
                                         </div>
                                     </div>
                                 </div>

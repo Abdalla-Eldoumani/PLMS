@@ -45,8 +45,8 @@ $payment = $db->query(
 // Get vehicle information
 $vehicle = $db->query(
     "SELECT v.* FROM vehicles v 
-     JOIN bookings b ON v.owner_id = b.customer_id
-     WHERE b.booking_id = ? AND v.owner_id = ? LIMIT 1", 
+     JOIN bookings b ON v.vehicle_id = b.vehicle_id
+     WHERE b.booking_id = ? AND b.customer_id = ? LIMIT 1", 
     [$booking_id, $user_id]
 )->fetch();
 
@@ -247,7 +247,7 @@ $overstay = $db->query(
                                     </div>
                                     
                                     <div class="mt-4">
-                                        <a href="payment-receipt.php?id=<?php echo $payment['payment_id']; ?>" class="text-blue-600 hover:text-blue-800 flex items-center">
+                                        <a href="payment-receipt.php?booking_id=<?php echo $booking['booking_id']; ?>" class="text-blue-600 hover:text-blue-800 flex items-center">
                                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

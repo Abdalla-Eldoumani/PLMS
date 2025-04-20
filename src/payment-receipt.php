@@ -40,8 +40,7 @@ $user = $db->query("SELECT * FROM users WHERE user_id = ?", [$_SESSION['user_id'
 
 // Get vehicle details
 $vehicle = $db->query("SELECT v.* FROM vehicles v 
-                       JOIN customers c ON v.owner_id = c.user_id
-                       JOIN bookings b ON b.customer_id = c.user_id
+                       JOIN bookings b ON v.vehicle_id = b.vehicle_id
                        WHERE b.booking_id = ?", [$bookingId])->fetch();
 
 // Calculate duration

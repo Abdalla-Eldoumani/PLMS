@@ -27,6 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Basic validation
         if (empty($license_plate)) {
             $errors[] = "License plate is required.";
+        }  elseif (!preg_match('/^[A-Z0-9\- ]{2,8}$/', $license_plate)) {
+            $errors[] = "License plate must be 2–8 characters long and contain only uppercase letters, numbers, dashes, or spaces.";
+        } else {
+            $existingVehicle = $db->query("SELECT vehicle_id FROM vehicles WHERE license_plate = ?", [$license_plate])->fetch();
+            if ($existingVehicle) {
+                $errors[] = "A vehicle with this license plate already exists.";
+            }
         }
         
         if (empty($vehicle_type)) {
@@ -34,10 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Check if license plate already exists
-        $existingVehicle = $db->query("SELECT vehicle_id FROM vehicles WHERE license_plate = ?", [$license_plate])->fetch();
-        if ($existingVehicle) {
-            $errors[] = "A vehicle with this license plate already exists.";
-        }
+     //   $existingVehicle = $db->query("SELECT vehicle_id FROM vehicles WHERE license_plate = ?", [$license_plate])->fetch();
+       // if ($existingVehicle) {
+         //   $errors[] = "A vehicle with this license plate already exists.";
+      //  }
+
+
+      //  if (!preg_match('/^[A-Z0-9\-]{2,8}$/', $license_plate)) {
+         //   $errors[] = "License plate must be 2–8 characters long and contain only uppercase letters, numbers, or dashes.";
+     //   }
         
         // If no errors, add vehicle
         if (empty($errors)) {
