@@ -70,11 +70,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $durationInMinutes = ($endDateTime->getTimestamp() - $startDateTime->getTimestamp()) / 60;
         $hours = ceil($durationInMinutes / 60);
         $totalCost = $hours * $slot['hourly_rate'];
+
+
+        $_SESSION['pending_booking'] = [
+            'slot_id'     => $slotId,
+            'vehicle_id'  => $vehicleId,
+            'start_time'  => $startTime,
+            'end_time'    => $endTime,
+            'total_cost'  => $totalCost
+        ];
+        
+        header("Location: payment.php");
+        exit();
+        
         
         
         // Begin transaction
-        $db->query("START TRANSACTION");
-        
+        //$db->query("START TRANSACTION");
+        /*
         try {
             // Create booking
             $db->query("INSERT INTO bookings (customer_id, slot_id, vehicle_id, start_time, end_time, status) 
@@ -100,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             $db->query("ROLLBACK");
             $errors[] = "Booking failed: " . $e->getMessage();
-        }
+        } */
     }
 }
 ?>

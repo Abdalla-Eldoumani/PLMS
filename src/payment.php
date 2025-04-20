@@ -14,14 +14,16 @@ $errors = [];
 $success = false;
 
 // Get booking_id from URL
+/*
 $bookingId = filter_input(INPUT_GET, 'booking_id', FILTER_VALIDATE_INT);
 
 if (!$bookingId) {
     header("Location: dashboard.php");
     exit();
-}
+} */
 
 // Get booking and payment details
+/*
 $booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.location, ps.hourly_rate,
                               p.amount, p.payment_method
                        FROM bookings b
@@ -29,7 +31,34 @@ $booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.locat
                        JOIN parking_lots pl ON ps.lot_id = pl.lot_id
                        JOIN payments p ON b.booking_id = p.booking_id
                        WHERE b.booking_id = ? AND b.customer_id = ?", 
-                       [$bookingId, $_SESSION['user_id']])->fetch();
+                       [$bookingId, $_SESSION['user_id']])->fetch(); */
+
+
+                       $pending = $_SESSION['pending_booking'] ?? null;
+
+                       if (!$pending) {
+                           header("Location: dashboard.php");
+                           exit();
+                       }
+                       
+                       // Get slot and lot details
+                       $booking = $db->query("SELECT ps.slot_id, ps.slot_number, ps.hourly_rate, pl.name as lot_name, pl.location 
+                                              FROM parking_slots ps
+                                              JOIN parking_lots pl ON ps.lot_id = pl.lot_id
+                                              WHERE ps.slot_id = ?", [$pending['slot_id']])->fetch();
+                       
+                       if (!$booking) {
+                           header("Location: dashboard.php");
+                           exit();
+                       }
+                       
+                       // Merge in session data
+                       $booking['start_time'] = $pending['start_time'];
+                       $booking['end_time'] = $pending['end_time'];
+                       $booking['total_cost'] = $pending['total_cost'];
+                       $booking['vehicle_id'] = $pending['vehicle_id'];
+                       
+
 
 if (!$booking) {
     header("Location: dashboard.php");
@@ -37,40 +66,53 @@ if (!$booking) {
 }
 
 // Process payment form
+error_log("Payment form submitted!");
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $paymentMethod = htmlspecialchars($_POST['payment_method'] ?? ''); 
+
+    if (!$paymentMethod) {
+        $errors[] = "Please select a payment method.";
+    }
     
-    // Validation
+
     if (!in_array($paymentMethod, ['Card', 'Mobile Pay', 'Cash'])) {
         $errors[] = "Invalid payment method";
     }
     
     if (empty($errors)) {
-        // Update payment record
+        $db->query("START TRANSACTION");
+    
         try {
-            $db->query("UPDATE payments 
-                       SET payment_method = ?
-                       WHERE booking_id = ?", 
-                       [$paymentMethod, $bookingId]);
-            
-            // Update booking status
-            $db->query("UPDATE bookings SET status = 'Active' WHERE booking_id = ?", [$bookingId]);
-            
-            // Ensure the slot status is set to Occupied
-            $db->query("UPDATE parking_slots ps 
-                       JOIN bookings b ON ps.slot_id = b.slot_id 
-                       SET ps.status = 'Occupied' 
-                       WHERE b.booking_id = ?", [$bookingId]);
-            
+            // Create booking
+            $db->query("INSERT INTO bookings (customer_id, slot_id, vehicle_id, start_time, end_time, status) 
+                        VALUES (?, ?, ?, ?, ?, 'Active')", 
+                        [$_SESSION['user_id'], $booking['slot_id'], $booking['vehicle_id'], $booking['start_time'], $booking['end_time']]);
+    
+            $bookingId = $db->getLastInsertId();
+    
+            // Create payment
+            $db->query("INSERT INTO payments (booking_id, amount, payment_method) 
+                        VALUES (?, ?, ?)", 
+                        [$bookingId, $booking['total_cost'], $paymentMethod]);
+    
+            // Set slot to occupied
+            $db->query("UPDATE parking_slots SET status = 'Occupied' WHERE slot_id = ?", [$booking['slot_id']]);
+    
+            $db->query("COMMIT");
+    
+            unset($_SESSION['pending_booking']);
             $success = true;
-            
-            // Redirect to receipt page after a short delay
+    
             header("refresh:2;url=payment-receipt.php?booking_id=" . $bookingId);
-            
+            //exit();
+    
         } catch (Exception $e) {
+            $db->query("ROLLBACK");
             $errors[] = "Payment failed: " . $e->getMessage();
         }
     }
+    
 }
 ?>
 
@@ -128,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div>
                         <p class="text-gray-600">Amount Due</p>
-                        <p class="font-medium text-xl">$<?php echo number_format($booking['amount'], 2); ?></p>
+                        <p class="font-medium text-xl">$<?php echo number_format($booking['total_cost'], 2); ?></p>
                     </div>
                 </div>
             </div>
@@ -136,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Payment Form -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Select Payment Method</h2>
-                <form method="POST" action="payment.php?booking_id=<?php echo $bookingId; ?>">
+                <form method="POST" action="payment.php">
                     <div class="space-y-4">
                         <div class="flex items-center">
                             <input type="radio" id="card" name="payment_method" value="Card" required
@@ -164,3 +206,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html> 
+<?php exit(); ?>
