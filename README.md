@@ -16,7 +16,7 @@ Scroll down to the "Download Docker Desktop" button and select the correct downl
 
 Next:
 - Open Git Bash or the Terminal and clone the repository:
-- git clone https://github.com/Abdalla-Eldoumani/PLMS
+- git clone https://github.com/Abdalla-Eldoumani/PLMS.git
 - cd PLMS
 
 
