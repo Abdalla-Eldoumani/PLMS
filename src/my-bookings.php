@@ -214,7 +214,8 @@ $bookings = $db->query($query, [$user_id])->fetchAll();
                                                 <p class="text-xs text-blue-600 mt-1">
                                                     <?php 
                                                     $timeLeft = $now->diff($endTime);
-                                                    echo $timeLeft->format('%h hr %i min remaining');
+                                                    $remaining_hours = $timeLeft->h + ($timeLeft->days * 24);
+                                                    echo $remaining_hours . ' hr ' . $timeLeft->i . ' min remaining';
                                                     ?>
                                                 </p>
                                             <?php endif; ?>
