@@ -1,4 +1,8 @@
 <?php
+
+// Timezone match
+date_default_timezone_set('America/Edmonton');
+
 // Security functions
 
 function sanitize($input) {
