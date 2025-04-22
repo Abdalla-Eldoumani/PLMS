@@ -213,10 +213,9 @@ $bookings = $db->query($query, [$user_id])->fetchAll();
                                             <?php if ($isOngoing): ?>
                                                 <p class="text-xs text-blue-600 mt-1">
                                                     <?php 
-                                                    $remainingSeconds = $endTime->getTimestamp() - $now->getTimestamp();
-                                                    $remainingHours = floor($remainingSeconds / 3600);
-                                                    $remainingMinutes = floor(($remainingSeconds % 3600) / 60);
-                                                    echo "{$remainingHours} hr {$remainingMinutes} min remaining";
+                                                    $timeLeft = $now->diff($endTime);
+                                                    $remaining_hours = $timeLeft->h + ($timeLeft->days * 24);
+                                                    echo $remaining_hours . ' hr ' . $timeLeft->i . ' min remaining';
                                                     ?>
                                                 </p>
                                             <?php endif; ?>

@@ -127,7 +127,8 @@ $overstay = $db->query(
                                     <p class="text-sm">
                                         <?php 
                                         $timeLeft = $now->diff($end_time);
-                                        echo 'Time remaining: ' . $timeLeft->format('%h hr %i min');
+                                        $remaining_hours = $timeLeft->h + ($timeLeft->days * 24);
+                                        echo 'Time remaining: ' . $remaining_hours . ' hr ' . $timeLeft->i . ' min';
                                         ?>
                                     </p>
                                 </div>

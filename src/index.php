@@ -127,27 +127,24 @@ $isLoggedIn = isset($_SESSION['user_id']);
                         <span>Available Spaces:</span>
                         <span class="font-bold"><?php echo $availability[$lot['lot_id']]['available']; ?> / <?php echo $availability[$lot['lot_id']]['total']; ?></span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
                         <div class="<?php echo $statusColor; ?> h-2.5 rounded-full" style="width: <?php echo $percentFull; ?>%"></div>
                     </div>
-                    <div class="mt-4">
-                        <h5 class="font-medium mb-1">Spot Types & Rates:</h5>
-                        <ul class="text-sm space-y-1">
-                            <?php foreach ($availability[$lot['lot_id']]['slot_types'] as $type): ?>
-                                <li>
-                                    <span class="font-medium"><?php echo htmlspecialchars($type['type']); ?>:</span> 
-                                    <?php echo $type['count']; ?> spots at $<?php echo number_format($type['min_rate'], 2); ?>/hour
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                    <div class="mt-4 flex justify-between">
-                        <?php if ($isLoggedIn): ?>
-                            <a href="find-parking.php?lot_id=<?php echo $lot['lot_id']; ?>" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">Book a Spot</a>
-                        <?php else: ?>
-                            <a href="login.php" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">Login to Book</a>
-                        <?php endif; ?>
-                        <a href="lot-details.php?lot_id=<?php echo $lot['lot_id']; ?>" class="text-red-700 hover:text-red-900">View Details</a>
+                    
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-sm text-gray-500">Starting at</span>
+                            <span class="font-semibold">
+                                <?php 
+                                $minRate = PHP_FLOAT_MAX;
+                                foreach($availability[$lot['lot_id']]['slot_types'] as $type) {
+                                    $minRate = min($minRate, $type['min_rate']);
+                                }
+                                echo '$' . number_format($minRate, 2) . '/hr';
+                                ?>
+                            </span>
+                        </div>
+                        <a href="lot-details.php?id=<?php echo $lot['lot_id']; ?>" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded text-sm">View Details</a>
                     </div>
                 </div>
             </div>
