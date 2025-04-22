@@ -116,22 +116,13 @@ $isLoggedIn = isset($_SESSION['user_id']);
                             </ul>
                         </div>
                         
-                        <div class="flex justify-between">
+                        <div class="grid grid-cols-2 gap-2">
                             <?php if ($isLoggedIn): ?>
-                                <a href="find-parking.php?lot_id=<?php echo $lot['lot_id']; ?>" 
-                                   class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">
-                                    Book a Spot
-                                </a>
+                                <a href="find-parking.php?lot_id=<?php echo $lot['lot_id']; ?>" class="bg-red-700 hover:bg-red-800 text-white py-2 px-4 rounded text-center text-sm">Book Now</a>
                             <?php else: ?>
-                                <a href="login.php" 
-                                   class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">
-                                    Login to Book
-                                </a>
+                                <a href="login.php" class="bg-red-700 hover:bg-red-800 text-white py-2 px-4 rounded text-center text-sm">Login to Book</a>
                             <?php endif; ?>
-                            <a href="lot-details.php?lot_id=<?php echo $lot['lot_id']; ?>" 
-                               class="text-red-700 hover:text-red-900">
-                                View Details
-                            </a>
+                            <a href="lot-details.php?id=<?php echo $lot['lot_id']; ?>" class="border border-red-700 text-red-700 hover:bg-red-50 py-2 px-4 rounded text-center text-sm">View Details</a>
                         </div>
                     </div>
                 </div>
