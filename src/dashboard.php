@@ -280,7 +280,7 @@ $alerts = $db->query("SELECT * FROM overstay_alerts
                                 </div>
                             <?php endforeach; ?>
                             <div class="mt-4 text-right">
-                                <a href="payment-history.php" class="text-sm text-red-700 hover:underline">View All Payments</a>
+                                <a href="payment-history.php?user_id=<?php echo $_SESSION['user_id']; ?>" class="text-sm text-red-700 hover:underline">View All Payments</a>
                             </div>
                         <?php else: ?>
                             <p class="text-gray-500 text-center py-4">No payment history available.</p>

@@ -14,7 +14,7 @@ $errors = [];
 $success = false;
 
 // Get booking_id from URL
-$bookingId = filter_input(INPUT_GET, 'booking_id', FILTER_VALIDATE_INT);
+$bookingId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$bookingId) {
     header("Location: my-bookings.php");
@@ -23,11 +23,11 @@ if (!$bookingId) {
 
 // Get booking details
 $booking = $db->query("SELECT b.*, ps.slot_number, pl.name as lot_name, pl.location, ps.hourly_rate,
-                              p.amount, p.payment_method, p.status as payment_status
+                              p.amount, p.payment_method
                        FROM bookings b
                        JOIN parking_slots ps ON b.slot_id = ps.slot_id
                        JOIN parking_lots pl ON ps.lot_id = pl.lot_id
-                       JOIN payments p ON b.booking_id = p.booking_id
+                       LEFT JOIN payments p ON b.booking_id = p.booking_id
                        WHERE b.booking_id = ? AND b.customer_id = ?", 
                        [$bookingId, $_SESSION['user_id']])->fetch();
 
@@ -92,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
                                [$newEndTime, $bookingId]);
                     
                     // Create new payment record for extension
-                    $db->query("INSERT INTO payments (booking_id, amount, payment_method, status) 
-                               VALUES (?, ?, 'Pending', 'Pending')", 
+                    $db->query("INSERT INTO payments (booking_id, amount, payment_method) 
+                               VALUES (?, ?, 'Card')", 
                                [$bookingId, $additionalCost]);
                     
                     // Ensure the slot status remains Occupied
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             <!-- Extension Form -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Select New End Time</h2>
-                <form method="POST" action="extend-booking.php?booking_id=<?php echo $bookingId; ?>">
+                <form method="POST" action="extend-booking.php?id=<?php echo $bookingId; ?>">
                     <div class="mb-6">
                         <label for="new_end_time" class="block text-gray-700 font-medium mb-2">New End Time</label>
                         <input type="text" id="new_end_time" name="new_end_time" required
