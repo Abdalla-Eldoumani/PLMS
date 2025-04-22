@@ -28,45 +28,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     // Add new slot
-    if ($action === 'add') {
-        $lotId = filter_input(INPUT_POST, 'lot_id', FILTER_VALIDATE_INT);
-        $slotNumber = trim($_POST['slot_number']);
-        $type = $_POST['type'];
-        $hourlyRate = filter_input(INPUT_POST, 'hourly_rate', FILTER_VALIDATE_FLOAT);
-        
-        // Validate inputs
-        if (!$lotId || empty($slotNumber) || empty($type) || !$hourlyRate) {
-            $message = "All fields are required";
-            $messageType = "error";
-        } else {
-            // Check if slot number already exists in the lot
-            $existing = $db->query("SELECT slot_id FROM parking_slots 
-                                   WHERE lot_id = ? AND slot_number = ?", 
-                                   [$lotId, $slotNumber])->fetch();
-            
-            if ($existing) {
-                $message = "A slot with this number already exists in this lot";
-                $messageType = "error";
-            } else {
-                try {
-                    $db->query("INSERT INTO parking_slots (lot_id, slot_number, status, type, hourly_rate) 
-                               VALUES (?, ?, 'Available', ?, ?)", 
-                               [$lotId, $slotNumber, $type, $hourlyRate]);
-                    
-                    // Update total slots count in parking lot
-                    $db->query("UPDATE parking_lots SET total_slots = (
-                                SELECT COUNT(*) FROM parking_slots WHERE lot_id = ?
-                               ) WHERE lot_id = ?", [$lotId, $lotId]);
-                    
-                    $message = "Slot added successfully";
-                    $messageType = "success";
-                } catch (Exception $e) {
-                    $message = "Error adding slot: " . $e->getMessage();
-                    $messageType = "error";
-                }
+if ($action === 'add') {
+    $lotId = filter_input(INPUT_POST, 'lot_id', FILTER_VALIDATE_INT);
+    $prefix = strtoupper(trim($_POST['slot_prefix']));
+    $start = filter_input(INPUT_POST, 'slot_start', FILTER_VALIDATE_INT);
+    $count = filter_input(INPUT_POST, 'slot_count', FILTER_VALIDATE_INT);
+    $type = $_POST['type'];
+    $hourlyRate = filter_input(INPUT_POST, 'hourly_rate', FILTER_VALIDATE_FLOAT);
+
+    if (!$lotId || !$prefix || !$start || !$count || empty($type) || !$hourlyRate) {
+        $message = "All fields are required";
+        $messageType = "error";
+    } else {
+        try {
+            $added = 0;
+            for ($i = 0; $i < $count; $i++) {
+                $slotNum = $prefix . ($start + $i);
+
+                // Check for duplicate
+                $exists = $db->query("SELECT slot_id FROM parking_slots WHERE lot_id = ? AND slot_number = ?", [$lotId, $slotNum])->fetch();
+                if ($exists) continue;
+
+                $db->query("INSERT INTO parking_slots (lot_id, slot_number, status, type, hourly_rate)
+                            VALUES (?, ?, 'Available', ?, ?)", [$lotId, $slotNum, $type, $hourlyRate]);
+                $added++;
             }
+
+            // Update total slots
+            $db->query("UPDATE parking_lots SET total_slots = (
+                            SELECT COUNT(*) FROM parking_slots WHERE lot_id = ?
+                        ) WHERE lot_id = ?", [$lotId, $lotId]);
+
+            $message = "$added slots added successfully.";
+            $messageType = "success";
+        } catch (Exception $e) {
+            $message = "Error adding slots: " . $e->getMessage();
+            $messageType = "error";
         }
     }
+}
+
     
     // Edit slot
     else if ($action === 'edit') {
@@ -326,10 +327,18 @@ $statusStats = $db->query("SELECT status, COUNT(*) as count FROM parking_slots
                         </div>
                         
                         <div class="mb-4">
-                            <label for="slot_number" class="block text-sm font-medium text-gray-700 mb-1">Slot Number</label>
-                            <input type="text" id="slot_number" name="slot_number" required class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            <p class="mt-1 text-xs text-gray-500">Example: A1, B15, etc.</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Slot Prefix</label>
+                            <input type="text" name="slot_prefix" placeholder="e.g., A" required class="mt-1 block w-full ...">
                         </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Starting Number</label>
+                            <input type="number" name="slot_start" placeholder="e.g., 1" min="1" required class="mt-1 block w-full ...">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Number of Slots to Create</label>
+                            <input type="number" name="slot_count" placeholder="e.g., 50" min="1" required class="mt-1 block w-full ...">
+                        </div>
+
                         
                         <div class="mb-4">
                             <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>

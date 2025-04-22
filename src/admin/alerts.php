@@ -49,11 +49,11 @@ $lotId = filter_input(INPUT_GET, 'lot_id', FILTER_VALIDATE_INT) ?: 'all';
 
 // Build query based on filters
 $query = "SELECT oa.*, b.booking_id, b.start_time, b.end_time, b.status as booking_status,
-          u.first_name, u.last_name, u.email, u.phone,
+          u.name, u.email, u.phone,
           v.license_plate, ps.slot_number, pl.name as lot_name
           FROM overstay_alerts oa
           JOIN bookings b ON oa.booking_id = b.booking_id
-          JOIN users u ON b.user_id = u.user_id
+          JOIN users u ON b.customer_id = u.user_id
           JOIN vehicles v ON b.vehicle_id = v.vehicle_id
           JOIN parking_slots ps ON b.slot_id = ps.slot_id
           JOIN parking_lots pl ON ps.lot_id = pl.lot_id
@@ -75,8 +75,7 @@ if ($lotId !== 'all') {
 $query .= " ORDER BY CASE WHEN oa.status = 'Pending' THEN 0
                           WHEN oa.status = 'In Progress' THEN 1
                           WHEN oa.status = 'Paid' THEN 2
-                          ELSE 3 END,
-            oa.created_date DESC";
+                          ELSE 3 END";
 
 $alerts = $db->query($query, $params)->fetchAll();
 
@@ -233,7 +232,7 @@ foreach ($alerts as $alert) {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($alert['license_plate']); ?></td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($alert['first_name'] . ' ' . $alert['last_name']); ?></div>
+                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($alert['name']); ?></div>
                                         <div class="text-sm text-gray-500"><?php echo htmlspecialchars($alert['email']); ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">

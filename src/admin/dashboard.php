@@ -149,7 +149,7 @@ $overstayAlerts = $db->query("SELECT oa.*, b.start_time, b.end_time,
                         </svg>
                     </div>
                 </div>
-                <a href="current-bookings.php" class="text-sm text-blue-600 hover:underline mt-4 inline-block">View Active Bookings</a>
+                <a href="bookings.php?filter=active" class="text-sm text-blue-600 hover:underline mt-4 inline-block">View Active Bookings</a>
             </div>
             
             <!-- Alerts -->
