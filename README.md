@@ -117,4 +117,15 @@ Once the database is initialized successfully, you should now be able to:
   - View Payments
   - Edit Profile
 
+# 6. MySQL Access
 
+To connect directly to the MySQL database, run the following command in your terminal:
+
+```bash
+docker exec -it db mysql -u root -p
+```
+When prompted for a password, enter the root password found in your `.env` file:
+
+MYSQL_ROOT_PASSWORD=secure_root_password
+
+This will give you access to the MySQL CLI inside the running Docker container so you can inspect tables, run queries, and check the database state.
