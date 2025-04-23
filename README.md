@@ -17,7 +17,7 @@ Then scroll down to the "Download Docker Desktop" button and select the correct 
 - Please refer to your motherboard/computer manufacturer’s documentation for details on how to access BIOS and enable virtualization.
 
 # 2. Build and Run Docker Containers
-Open your **terminal** — one of the following is recommended:
+Open your **terminal** — we recommended to do one of the following:
 
 - VS Code terminal (Recommended)
 - Command Prompt (Windows)
@@ -55,7 +55,7 @@ Once containers are running:
 - Once you are on (http://localhost:8800/) you will see the Homepage. 
 - First thing before doing anything, you need to create the tables for the parking slots and that is in `db-test.php`, so go into the **URL bar** at the top and paste this: 
   - http://localhost:8800/db-test.php 
-  - Now once in this you will see information about our database.
+  - Now once you are in this you will see information about our database.
   - Scroll down and find a hyperlink labeled **Initiazlie Database**
   - Click **Initiazlie Database** it will redirect you to this http://localhost:8800/init-db.php 
 
@@ -114,5 +114,7 @@ Once the database is initialized successfully, you should now be able to:
   - Booking parking slots
   - View bookings
   - Manage their bookings: users can cancel or extend a booking if they wish
+  - View Payments
+  - Edit Profile
 
 
